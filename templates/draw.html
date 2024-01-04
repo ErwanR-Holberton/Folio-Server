@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tile Visualization with IDs and Selector</title>
+    <style>
+        body {
+            display: flex;
+            font-family: Arial, sans-serif;
+        }
+        #tile-container {
+            min-width: 256px;
+            height: 256px;
+            display: grid;
+            grid-template-columns: repeat(16, 16px);
+            border: 1px solid #ccc;
+        }
+        .tile {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+        #color-selector {
+            margin-left: 20px;
+            flex-grow: 1;
+        }
+        .tileContainer {
+            display: flex;
+            flex-wrap: wrap;
+            margin: 5px;
+            flex-grow: 0;
+        }
+        .side_container {
+            border: 1px #000;
+            display: flex;
+            flex-wrap: wrap;
+            margin: 5px;
+            flex-grow: 1;
+        }
+        .tileVisualization {
+            margin: 5px;
+            height: 160px;
+            width: 160px;
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .pixel {
+            width: 10px;
+            height: 10px;
+        }
+        #send-button {
+            margin-top: 10px;
+        }
+		.right-side {
+			flex-direction: column;
+		}
+    </style>
+</head>
+<body>
+
+<div id="right-side">
+	<div id="tile-container"></div>
+
+	<div id="color-selector">
+		<label for="colorPicker">Select color:</label>
+		<input type="color" id="colorPicker" value="#000000">
+		<button id="send-button" onclick="sendTileData()">Send Tile Data</button>
+		<div id="visualization-container"></div>
+
+		<script>
+			// Sample data for visualization
+			const data = {
+				title: 'Visualization Title',
+				content: 'This is some sample data that you want to visualize.'
+			};
+
+			// Create a div element
+			const visualizationDiv = document.getElementById('visualization-container');
+
+			// Set the id for the div
+			visualizationDiv.id = 'visualization-container';
+
+			// Set the initial content for the div
+			visualizationDiv.innerHTML = `<h2>${data.title}</h2><p>${data.content}</p>`;
+
+			// Append the div to the body or another parent element
+			document.body.appendChild(visualizationDiv);
+
+			// Function to update the content dynamically
+			function updateVisualization(newData) {
+				// Update the content of the div with new data
+				visualizationDiv.innerHTML = `<h2>${newData.title}</h2><p>${newData.content}</p>`;
+			}
+
+			// Example: Update the visualization after a delay
+			setTimeout(() => {
+
+			}, 3000); // Change the content after 3 seconds for demonstration purposes
+		</script>
+	</div>
+</div>
+
+
+<div class="side_container">
+    {% for tileName, tileValue in tiles.items() %}
+        <div class="tileVisualization">
+            {% for i in range(16) %}
+                {% for j in range(16) %}
+                    <div class="pixel" id="{{ i }}_{{ j }}" style="background-color: rgb({{ tileValue[i][j][0] }}, {{ tileValue[i][j][1] }}, {{ tileValue[i][j][2] }});"></div>
+                {% endfor %}
+            {% endfor %}
+        </div>
+    {% endfor %}
+</div>
+
+<script>
+    // Array to store the current drawn tile
+    let currentTile = Array.from({ length: 16 }, () => Array(16).fill([255, 255, 255]));
+
+    // Function to handle tile selection
+    function selectTile(event) {
+        const selectedTile = event.target;
+        const selectedColor = colorPicker.value;
+        selectedTile.style.backgroundColor = selectedColor;
+
+        // Extract row and column from the data attributes
+        const row = parseInt(selectedTile.getAttribute('data-row'), 10);
+        const col = parseInt(selectedTile.getAttribute('data-col'), 10);
+
+        // Update the currentTile array
+        currentTile[row][col] = hexToRgb(selectedColor);
+		const newData = {
+			title: 'Updated Title',
+			content: row + '_' + col + '_' + hexToRgb(selectedColor)
+		};
+		updateVisualization(newData);
+    }
+
+	function hexToRgb(hex) {
+    // Remove the hash if it exists
+    hex = hex.replace(/^#/, '');
+
+    // Parse the hex values
+    const bigint = parseInt(hex, 16);
+
+    // Extract RGB components
+    const r = (bigint >> 16) & 255;
+    const g = (bigint >> 8) & 255;
+    const b = bigint & 255;
+
+    return [r, g, b];
+}
+
+    // Function to send a POST request with the current tile data
+    function sendTileData() {
+        const url = '/post_tile'; // Replace with your actual API endpoint
+
+        // Define the payload in the required format
+        const payload = {
+            creator: 'filler_value',
+            name: 'filler_value',
+            tile: currentTile,
+        };
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('POST request successful:', data);
+            // You can handle the response data as needed
+        })
+        .catch(error => {
+            console.error('Error during POST request:', error);
+        });
+    }
+
+    // Create a 16x16 grid of tiles
+    const tileContainer = document.getElementById('tile-container');
+    for (let i = 0; i < 256; i++) {
+        const tile = document.createElement('div');
+        tile.className = 'tile';
+        tile.setAttribute('data-row', Math.floor(i / 16));
+        tile.setAttribute('data-col', i % 16);
+        tile.addEventListener('click', selectTile);
+        tileContainer.appendChild(tile);
+    }
+</script>
+
+</body>
+</html>
